@@ -13,6 +13,7 @@ import torchtext
 from torchtext.vocab import Vocab
 
 def load_rationale(path, regression):
+    # TODO edit this ig
     '''
     path: path to the tsv file that has machine generated rationales
     regression: a binary variable indicating whether we are doing classification or regression
