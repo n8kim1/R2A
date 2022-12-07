@@ -104,3 +104,4 @@ venv.bak/
 .mypy_cache/
 
 data_backup/
+r2a/.vector_cache/
