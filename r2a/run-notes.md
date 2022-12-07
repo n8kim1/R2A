@@ -12,4 +12,8 @@ model saved
 
 python src/main.py --mode=test_r2a  --num_classes=2,2  --src_dataset=beer0 --tar_dataset=hotel_Cleanliness  --snapshot=saved-runs/train_r2a/beer0_hotel_16703874504035458/best --test_path=../data/target/hotel_Cleanliness.train --batch_size=1
 try to predict attention
-everything seems too uniform...
+normalized etc so yay
+
+
+python src/main.py --mode=test_clf  --num_classes=2  --src_dataset=hotel_Cleanliness  --snapshot=saved-runs/train_r2a/beer0_hotel_16703874504035458/best --test_path=../data/target/hotel_Cleanliness.train --batch_size=1 --hidden_dim=25 --rnn_size=100
+get gold attn (from building a standard oracle classifier)
