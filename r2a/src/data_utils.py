@@ -10,28 +10,29 @@ import os
 import csv
 import gzip
 import torchtext
+import pandas as pd
+from ast import literal_eval
 from torchtext.vocab import Vocab
 
 def load_rationale(path, regression):
-    # TODO edit this ig
+    # Adjust for our pandas dataset
     '''
     path: path to the tsv file that has machine generated rationales
     regression: a binary variable indicating whether we are doing classification or regression
     '''
     label = []
-    with open(path, 'r') as f:
-        next(f)
-        data = []
+    df = pd.read_csv(path ,encoding='latin-1')
 
-        for row in f:
-            row = row.strip().split('\t')
-            data.append({
-                'label'    : float(row[1]) if regression else int(float(row[1])),
-                'text'     : row[2].strip().split(' '), 
-                'rationale': [int(x) for x in row[3].strip().split(' ')],
-                'task'     : row[0].strip(),
-                })
-            label.append(data[-1]['label'])
+    data = []
+
+    for row in df.itertuples():
+        data.append({
+            'label'    : float(row.label) if regression else int(float(row.label)),
+            'text'     : row.text.strip().split(' '), 
+            'rationale': literal_eval(row.gpt3_rationale),
+            'task'     : row.task.strip(),
+            })
+        label.append(data[-1]['label'])
 
     label = np.array(label)
     counter = sorted(collections.Counter(label).items())
@@ -50,36 +51,39 @@ def load_rat_pred_gold(path, task, regression):
     task: the name of the task
     regression: a binary variable indicating whether we are doing classification or regression
     '''
-    with open(path, 'r') as f:
-        next(f)
-        data = []
+    print(task)
+    df = pd.read_csv(path ,encoding='latin-1')
 
-        for row in f:
-            row = row.strip().split('\t')
+    data = []
 
-            # Only collect examples for this aspect
-            if task != row[0].strip():
-                continue
+    for row in df.itertuples(index=False):
 
-            text = row[2].replace('  ',' ').split(' ')
-            rationale = [0 for i in range(len(text))]
-            pred_att  = [0 for i in range(len(text))]
-            gold_att  = [0 for i in range(len(text))]
+        # Only collect examples for this aspect
+        if task != row.task.strip():
+            print("stripping example for this aspect")
+            continue
 
-            if len(row) > 3:
-                rationale = [round(float(x)) for x in row[3].strip().split(' ')]
-            if len(row) > 4:
-                pred_att = [float(x) for x in row[4].strip().split(' ')]
-            if len(row) > 5:
-                gold_att = [float(x) for x in row[5].strip().split(' ')]
+        text = row.text.replace('  ',' ').split(' ')
+        rationale = [0 for i in range(len(text))]
+        pred_att  = [0 for i in range(len(text))]
+        gold_att  = [0 for i in range(len(text))]
+        # print(len(row))
+        if len(row) > 3:
+            rationale = literal_eval(row.gpt3_rationale)
+        
+        # TODO the following 2 prob need literal_eval or smth
+        if len(row) > 4:
+            pred_att = [float(x) for x in row[4].strip().split(' ')]
+        if len(row) > 5:
+            gold_att = [float(x) for x in row[5].strip().split(' ')]
 
-            data.append({
-                'text'     : text, 
-                'label'    : float(row[1]) if regression else int(float(row[1])),
-                'rationale': rationale,
-                'gold_att' : gold_att,
-                'pred_att' : pred_att,
-                })
+        data.append({
+            'text'     : text, 
+            'label'    : float(row.label) if regression else int(float(row.label)),
+            'rationale': rationale,
+            'gold_att' : gold_att,
+            'pred_att' : pred_att,
+            })
 
     return data
 
@@ -328,7 +332,9 @@ def load_dataset(args, vocab=None):
                 'glove.42B.300d', 'glove.840B.300d', 'glove.twitter.27B.25d',
                 'glove.twitter.27B.50d', 'glove.twitter.27B.100d', 'glove.twitter.27B.200d',
                 'glove.6B.50d', 'glove.6B.100d', 'glove.6B.200d', 'glove.6B.300d']:
-            vocab = Vocab(collections.Counter(read_words(train_data_dict)), vectors=args.word_vector,
+            # print(args.word_vector)
+            # fasttext is down and giving HTTP 403s
+            vocab = Vocab(collections.Counter(read_words(train_data_dict)), vectors='charngram.100d',
                     min_freq=5)
         else: # load pre-defined word vector
             v = torchtext.vocab.Vectors(args.word_vector)
