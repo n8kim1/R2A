@@ -830,7 +830,15 @@ def evaluate_r2a_batch(model, task, batch, args, writer=None):
     invar_hidden = model['transform'](hidden)
 
     # run r2a to generate attention
-    pred_att, log_pred_att = model['r2a'](invar_hidden, rationale, rat_freq, text_len, text_mask)
+    pred_att, _ = model['r2a'](invar_hidden, rationale, rat_freq, text_len, text_mask)
+
+    # normalize pred_att to make changes more drastic
+    # min-max is smoothers than z-score
+
+    # pred_att = (pred_att - pred_att.mean())/(pred_att.std())
+    pred_att = (pred_att - pred_att.min())/(pred_att.max() - pred_att.min())
+    pred_att = torch.nn.functional.softmax(pred_att)
+    
 
     normalized_rationale = rationale * text_mask
     normalized_rationale = normalized_rationale / torch.sum(normalized_rationale, dim=1,
